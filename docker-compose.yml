@@ -1,0 +1,102 @@
+version: '3.2'
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.external-url=http://127.0.0.1/prometheus'
+      - '--log.level=debug'
+#    ports:
+#      - 9090:9090
+    restart: always
+    networks:
+      proxy:
+        aliases:
+          - prometheus
+        ipv4_address: 172.19.0.3
+    container_name: prometheus
+    labels:
+      - "namespace=Prometheus"
+      - "traefik.backend=prometheus"
+      - "traefik.frontend.rule=PathPrefix:/prometheus"
+      - "traefik.enable=true"
+      - "traefik.port=9090"
+      - "traefik.passHostHeader=true"
+      - "traefik.frontend.auth.basic=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
+#      - "traefik.frontend.auth.digest=admin:prometheus:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
+    environment:
+      - TZ=Europe/Berlin
+
+  grafana:
+    image: grafana/grafana:latest
+    depends_on:
+      - prometheus
+#    ports:
+#      - 3000:3000
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+    networks:
+      proxy:
+        aliases:
+          - grafana
+        ipv4_address: 172.19.0.5
+    restart: always
+    user: "104"
+    container_name: grafana
+    labels:
+      - "namespace=Prometheus"
+      - "traefik.backend=grafana"
+      - "traefik.frontend.rule=PathPrefixStrip:/grafana"
+      - "traefik.enable=true"
+      - "traefik.port=3000"
+      - "traefik.passHostHeader=true"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=foobar
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana
+      - TZ=Europe/Berlin
+
+  traefik:
+    image: traefik
+    networks:
+      proxy:
+        ipv4_address: 172.19.0.2
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.toml:/etc/traefik/traefik.toml:ro
+      - ./traefik/acme.json:/etc/traefik/acme.json:rw
+    labels:
+      - "namespace=Prometheus"
+      - "traefik.enable=true"
+      - "traefik.backend=traefik"
+      - "traefik.frontend.rule=PathPrefixStrip:/traefik"
+      - "traefik.port=8080"
+      - "traefik.frontend.auth.basic=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
+#      - "traefik.frontend.auth.digest=admin:traefik:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
+    environment:
+      - TZ=Europe/Berlin
+    container_name: traefik
+    restart: always
+
+networks:
+  proxy:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.19.0.0/24
