@@ -22,7 +22,6 @@ services:
       proxy:
         aliases:
           - prometheus
-        ipv4_address: 172.19.0.3
     container_name: prometheus
     labels:
       - "namespace=Prometheus"
@@ -50,7 +49,6 @@ services:
       proxy:
         aliases:
           - node_exporter
-        ipv4_address: 172.19.0.4
     container_name: node_expoter
     labels:
       - "namespace=Prometheus"
@@ -58,6 +56,7 @@ services:
       - "traefik.backend=node_exporter"
       - "traefik.frontend.rule=PathPrefix:/node_exporter;ReplacePath:/metrics"
       - "traefik.port=9100"
+      - "traefik.passHostHeader=true"
       - "traefik.frontend.auth.basic.users=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
 
   grafana:
@@ -72,7 +71,6 @@ services:
       proxy:
         aliases:
           - grafana
-        ipv4_address: 172.19.0.5
     restart: always
     user: "104"
     container_name: grafana
@@ -93,7 +91,6 @@ services:
     image: traefik:v1.7
     networks:
       proxy:
-        ipv4_address: 172.19.0.2
     ports:
       - "8080:80"
     volumes:
@@ -106,6 +103,7 @@ services:
       - "traefik.backend=traefik"
       - "traefik.frontend.rule=PathPrefixStrip:/traefik"
       - "traefik.port=8080"
+      - "traefik.passHostHeader=true"
       - "traefik.frontend.auth.basic.users=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
     environment:
       - TZ=Europe/Berlin
