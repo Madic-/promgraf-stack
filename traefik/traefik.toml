@@ -27,6 +27,5 @@ buckets=[0.1,0.3,1.2,5.0]
 
 [docker]
 endpoint = "unix:///var/run/docker.sock"
-domain = "iplabs.de"
 watch = true
 exposedbydefault = false

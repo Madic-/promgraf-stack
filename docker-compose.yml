@@ -1,4 +1,4 @@
-version: '3.2'
+version: "3.2"
 
 volumes:
   prometheus_data: {}
@@ -11,14 +11,12 @@ services:
       - ./prometheus/:/etc/prometheus/
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.external-url=http://127.0.0.1/prometheus'
-      - '--log.level=debug'
-#    ports:
-#      - 9090:9090
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.external-url=http://127.0.0.1/prometheus"
+      - "--log.level=debug"
     restart: always
     networks:
       proxy:
@@ -33,17 +31,39 @@ services:
       - "traefik.enable=true"
       - "traefik.port=9090"
       - "traefik.passHostHeader=true"
-      - "traefik.frontend.auth.basic=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
-#      - "traefik.frontend.auth.digest=admin:prometheus:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
+      - "traefik.frontend.auth.basic.users=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
     environment:
       - TZ=Europe/Berlin
+
+  node_exporter:
+    image: prom/node-exporter:latest
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    networks:
+      proxy:
+        aliases:
+          - node_exporter
+        ipv4_address: 172.19.0.4
+    container_name: node_expoter
+    labels:
+      - "namespace=Prometheus"
+      - "traefik.enable=true"
+      - "traefik.backend=node_exporter"
+      - "traefik.frontend.rule=PathPrefix:/node_exporter;ReplacePath:/metrics"
+      - "traefik.port=9100"
+      - "traefik.frontend.auth.basic.users=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
 
   grafana:
     image: grafana/grafana:latest
     depends_on:
       - prometheus
-#    ports:
-#      - 3000:3000
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
@@ -70,12 +90,12 @@ services:
       - TZ=Europe/Berlin
 
   traefik:
-    image: traefik
+    image: traefik:v1.7
     networks:
       proxy:
         ipv4_address: 172.19.0.2
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.toml:/etc/traefik/traefik.toml:ro
@@ -86,8 +106,7 @@ services:
       - "traefik.backend=traefik"
       - "traefik.frontend.rule=PathPrefixStrip:/traefik"
       - "traefik.port=8080"
-      - "traefik.frontend.auth.basic=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
-#      - "traefik.frontend.auth.digest=admin:traefik:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
+      - "traefik.frontend.auth.basic.users=admin:$$apr1$$1etHutoM$$iv3F5h9CmT3W0e0XL3mHS1"
     environment:
       - TZ=Europe/Berlin
     container_name: traefik
