@@ -1,4 +1,4 @@
-# Traefik / Grafana / Prometheus
+# Traefik / Grafana / Prometheus / Node_Exporter
 
 Grafana:
 http://localhost:8080/grafana
@@ -9,7 +9,7 @@ http://localhost:8080/prometheus
 Traefik:
 http://localhost:8080/traefik
 
-Node-Exporter:
+Node_Exporter:
 http://localhost:8080/node_exporter
 
 Logindaten:
